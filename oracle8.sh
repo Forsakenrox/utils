@@ -9,7 +9,7 @@ dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarc
 dnf update
 dnf -y install https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 #install php
-dnf module install php:remi-8.1
+dnf module install -y php:remi-8.1
 dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml
 #install databases
 dnf install -y mariadb-server mariadb-client
@@ -23,14 +23,18 @@ rm -rf phpMyAdmin-*.tar.gz
 sudo mv phpMyAdmin-*/ /var/www/phpmyadmin
 cp /var/www/phpmyadmin/config.sample.inc.php  /var/www/phpmyadmin/config.inc.php
 randomBlowfishSecret=$(openssl rand -base64 32)
-sed -i "s|cfg\['blowfish_secret'\]".*"|cfg['blowfish_secret'] = '${randomBlowfishSecret}'|" /var/www/phpmyadmin/config.inc.php
+sed -i "s|cfg\['blowfish_secret'\]".*"|cfg['blowfish_secret'] = '${randomBlowfishSecret}';|" /var/www/phpmyadmin/config.inc.php
+mkdir -p /etc/nginx/sites-available/
+mkdir -p /etc/nginx/sites-enabled/
+curl -o /etc/nginx/sites-available/phpmyadmin https://raw.githubusercontent.com/Forsakenrox/utils/main/phpmyadmin
+ln -s /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
 
 #install additional utils
 dnf install -y composer git nginx bzip2 fail2ban htop
 #install gitlab-runner
 curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/rpm/gitlab-runner_amd64.rpm"
 rpm -Uvh gitlab-runner_amd64.rpm
-chown -R /var/www gitlab-runner:gitlab-runner
+chown -R gitlab-runner:gitlab-runner /var/www
 
 systemctl enable nginx
 systemctl enable mariadb
@@ -41,9 +45,6 @@ systemctl enable gitlab-runner
 sed -i "s/user =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 sed -i "s/group =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 
-mkdir -p /etc/nginx/sites-available/
-mkdir -p /etc/nginx/sites-enabled/
-curl -o /etc/nginx/sites-available/ https://your-domain-name/long-file-name.pdf
 
 firewall-cmd --permanent --add-port=80/tcp
 firewall-cmd --permanent --add-port=443/tcp

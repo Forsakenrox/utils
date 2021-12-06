@@ -2,7 +2,10 @@ server {
 	listen 10000;
 	root /var/www/phpmyadmin/;
 	index index.php;
-
+	
+	access_log /var/log/nginx/dev.marchelache.com/access.log combined;
+	error_log /var/log/nginx/dev.marchelache.com/error.log error;
+	
 	# set expiration of assets to MAX for caching
 	location ~* \.(ico|css|js)(\?[0-9]+)?$ {
 			expires max;
