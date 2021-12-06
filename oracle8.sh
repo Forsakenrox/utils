@@ -4,7 +4,7 @@ setenforce 0
 sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
 
 #install repos
-yum update -y
+dnf update -y
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 dnf update -y
 dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
