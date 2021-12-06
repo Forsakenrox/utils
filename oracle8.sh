@@ -4,10 +4,10 @@ setenforce 0
 sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
 
 #install repos
-yum update
+yum update -y
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-dnf update
-dnf -y install https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+dnf update -y
+dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 #install php
 dnf module install -y php:remi-8.1
 dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml
