@@ -13,7 +13,13 @@ dnf module install -y php:remi-8.1
 dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml
 #install databases
 dnf install -y mariadb-server mariadb-client
-#install php
+
+#install additional utils
+dnf install -y composer git nginx bzip2 fail2ban htop
+#add nginx configs
+sed -i "s|include /etc/nginx/conf.d/\*\.conf;|include /etc/nginx/conf.d/\*\.conf; \n include /etc/nginx/sites-available/\*;|g" /etc/nginx/nginx.conf
+
+#install phpmyadmin
 DATA="$(wget https://www.phpmyadmin.net/home_page/version.txt -q -O-)"
 URL="$(echo $DATA | cut -d ' ' -f 3)"
 VER="$(echo $DATA | cut -d ' ' -f 1)"
@@ -29,8 +35,6 @@ mkdir -p /etc/nginx/sites-enabled/
 curl -o /etc/nginx/sites-available/phpmyadmin https://raw.githubusercontent.com/Forsakenrox/utils/main/phpmyadmin
 ln -s /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
 
-#install additional utils
-dnf install -y composer git nginx bzip2 fail2ban htop
 #install gitlab-runner
 curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/rpm/gitlab-runner_amd64.rpm"
 rpm -Uvh gitlab-runner_amd64.rpm
