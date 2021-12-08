@@ -11,8 +11,11 @@ dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 #install php
 dnf module install -y php:remi-8.1
 dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml
+chown root:gitlab-runner /var/lib/php/opcache
+chown root:gitlab-runner /var/lib/php/session
+chown root:gitlab-runner /var/lib/php/wsdlcache
 #install databases
-dnf install -y mariadb-server mariadb-client
+dnf install -y mariadb-server
 
 #install additional utils
 dnf install -y composer git nginx bzip2 fail2ban htop
@@ -29,7 +32,8 @@ rm -rf phpMyAdmin-*.tar.gz
 sudo mv phpMyAdmin-*/ /var/www/phpmyadmin
 cp /var/www/phpmyadmin/config.sample.inc.php  /var/www/phpmyadmin/config.inc.php
 randomBlowfishSecret=$(openssl rand -base64 32)
-sed -i "s|cfg\['blowfish_secret'\]".*"|cfg['blowfish_secret'] = '${randomBlowfishSecret}';|" /var/www/phpmyadmin/config.inc.php
+sed -i "s|\$cfg\['blowfish_secret'\]".*"|cfg['blowfish_secret'] = '${randomBlowfishSecret}';|" /var/www/phpmyadmin/config.inc.php
+sed -i "s|$cfg['Servers'][$i]['AllowNoPassword'] = false;|$cfg['Servers'][$i]['AllowNoPassword'] = true;|" /var/www/phpmyadmin/config.inc.php
 mkdir -p /etc/nginx/sites-available/
 mkdir -p /etc/nginx/sites-enabled/
 curl -o /etc/nginx/sites-available/phpmyadmin https://raw.githubusercontent.com/Forsakenrox/utils/main/phpmyadmin
@@ -55,8 +59,8 @@ firewall-cmd --permanent --add-port=443/tcp
 firewall-cmd --permanent --add-port=10000/tcp
 firewall-cmd --reload
 
-service nginx start
-service mariadb start
-service php-fpm start
-service fail2ban start
-service gitlab-runner start
+service nginx restart
+service mariadb restart
+service php-fpm restart
+service fail2ban restart
+service gitlab-runner restart
