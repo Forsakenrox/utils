@@ -14,8 +14,7 @@ dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php
 #chown root:gitlab-runner /var/lib/php/opcache
 #chown root:gitlab-runner /var/lib/php/session
 #chown root:gitlab-runner /var/lib/php/wsdlcache
-mkdir -p /home/apache
-usermod -d /home/apache apache
+ln -s /usr/share/httpd /home/apache
 usermod --shell /bin/bash apache
 
 #install databases
