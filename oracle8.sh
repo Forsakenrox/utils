@@ -36,7 +36,7 @@ sudo mv phpMyAdmin-*/ /var/www/phpmyadmin
 cp /var/www/phpmyadmin/config.sample.inc.php  /var/www/phpmyadmin/config.inc.php
 randomBlowfishSecret=$(openssl rand -base64 32)
 sed -i "s|\$cfg\['blowfish_secret'\]".*"|\$cfg\['blowfish_secret'\] = '${randomBlowfishSecret}';|" /var/www/phpmyadmin/config.inc.php
-sed -i "s|\['AllowNoPassword'\] = false;|\['AllowNoPassword'\] = true;|" /var/www/phpmyadmin/config.inc.php
+#sed -i "s|\['AllowNoPassword'\] = false;|\['AllowNoPassword'\] = true;|" /var/www/phpmyadmin/config.inc.php
 mkdir -p /etc/nginx/sites-available/
 mkdir -p /etc/nginx/sites-enabled/
 curl -o /etc/nginx/sites-available/phpmyadmin https://raw.githubusercontent.com/Forsakenrox/utils/main/phpmyadmin
@@ -71,3 +71,8 @@ service mariadb restart
 service php-fpm restart
 service fail2ban restart
 service gitlab-runner restart
+
+#mysql -e "CREATE USER 'root'@'127.0.0.1' IDENTIFIED BY 'RLS#pwe3'"
+#mysql -e "GRANT ALL PRIVILEGES ON * . * TO 'root'@'127.0.0.1'"
+#mysql -e "FLUSH PRIVILEGES"
+mysql_secure_installation
