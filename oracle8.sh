@@ -11,9 +11,13 @@ dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 #install php
 dnf module install -y php:remi-8.1
 dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml
-chown root:gitlab-runner /var/lib/php/opcache
-chown root:gitlab-runner /var/lib/php/session
-chown root:gitlab-runner /var/lib/php/wsdlcache
+#chown root:gitlab-runner /var/lib/php/opcache
+#chown root:gitlab-runner /var/lib/php/session
+#chown root:gitlab-runner /var/lib/php/wsdlcache
+mkdir -p /home/apache
+usermod -d /home/apache apache
+usermod --shell /bin/bash apache
+
 #install databases
 dnf install -y mariadb-server
 
@@ -42,7 +46,11 @@ ln -s /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
 #install gitlab-runner
 curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/rpm/gitlab-runner_amd64.rpm"
 rpm -Uvh gitlab-runner_amd64.rpm
-chown -R gitlab-runner:gitlab-runner /var/www
+gitlab-runner uninstall
+gitlab-runner install --user=apache --working-directory=/home/apache
+service gitlab-runner restart
+#chown -R gitlab-runner:gitlab-runner /var/www
+chown -R apache:apache /var/www
 
 systemctl enable nginx
 systemctl enable mariadb
@@ -50,8 +58,8 @@ systemctl enable php-fpm
 systemctl enable fail2ban
 systemctl enable gitlab-runner
 
-sed -i "s/user =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
-sed -i "s/group =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
+#sed -i "s/user =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
+#sed -i "s/group =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 
 
 firewall-cmd --permanent --add-port=80/tcp
