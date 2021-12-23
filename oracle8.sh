@@ -2,7 +2,7 @@
 #disable SElinux in current session
 setenforce 0
 sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
-
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
 #install repos
 dnf update -y
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
