@@ -10,7 +10,7 @@ dnf update -y
 dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 #install php
 dnf module install -y php:remi-8.1
-dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml
+dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml php-gd
 #chown root:gitlab-runner /var/lib/php/opcache
 #chown root:gitlab-runner /var/lib/php/session
 #chown root:gitlab-runner /var/lib/php/wsdlcache
