@@ -14,8 +14,11 @@ dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php
 #chown root:gitlab-runner /var/lib/php/opcache
 #chown root:gitlab-runner /var/lib/php/session
 #chown root:gitlab-runner /var/lib/php/wsdlcache
-ln -s /usr/share/httpd /home/apache
+
+#ln -s /usr/share/httpd /home/apache
+mkdir -p /home/apache
 usermod --shell /bin/bash apache
+usermod -d /home/apache apache
 
 #install databases
 dnf install -y mariadb-server
