@@ -63,7 +63,6 @@ systemctl enable gitlab-runner
 #sed -i "s/user =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 #sed -i "s/group =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 
-
 firewall-cmd --permanent --add-port=80/tcp
 firewall-cmd --permanent --add-port=443/tcp
 firewall-cmd --permanent --add-port=10000/tcp
@@ -75,7 +74,4 @@ service php-fpm restart
 service fail2ban restart
 service gitlab-runner restart
 
-#mysql -e "CREATE USER 'root'@'127.0.0.1' IDENTIFIED BY 'RLS#pwe3'"
-#mysql -e "GRANT ALL PRIVILEGES ON * . * TO 'root'@'127.0.0.1'"
-#mysql -e "FLUSH PRIVILEGES"
 mysql_secure_installation
