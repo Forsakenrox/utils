@@ -17,6 +17,7 @@ dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php
 
 #ln -s /usr/share/httpd /home/apache
 mkdir -p /home/apache
+chown apache:apache -R /home/apache
 usermod --shell /bin/bash apache
 usermod -d /home/apache apache
 
