@@ -67,6 +67,7 @@ systemctl enable gitlab-runner
 firewall-cmd --permanent --add-port=80/tcp
 firewall-cmd --permanent --add-port=443/tcp
 firewall-cmd --permanent --add-port=10000/tcp
+firewall-cmd --permanent --add-port=3306/tcp
 firewall-cmd --reload
 
 service nginx restart
