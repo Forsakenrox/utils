@@ -1,0 +1,4 @@
+#create dump
+mysqldump -uroot -p database_name | bzip2 -c > database_name.sql.bz2
+#upload dump
+bzip2 -dc < database_name.sql.bz2 | ionice -c2 -n7 mysql -uroot -p database_name
