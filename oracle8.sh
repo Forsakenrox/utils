@@ -1,6 +1,7 @@
 #hostnamectl set-hostname CLD-SRV-WEB-03
 #disable SElinux in current session
 setenforce 0
+#disable selinux after reboot
 sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
 sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
 #install repos
@@ -64,10 +65,18 @@ systemctl enable gitlab-runner
 #sed -i "s/user =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 #sed -i "s/group =".*"/user = gitlab-runner/g" /etc/php-fpm.d/www.conf
 
+#http
 firewall-cmd --permanent --add-port=80/tcp
+#https
 firewall-cmd --permanent --add-port=443/tcp
+#phpmyadmin
 firewall-cmd --permanent --add-port=10000/tcp
+#mysql
 firewall-cmd --permanent --add-port=3306/tcp
+#mongodb
+firewall-cmd --permanent --add-port=27017/tcp
+#redis
+firewall-cmd --permanent --add-port=6379/tcp
 firewall-cmd --reload
 
 service nginx restart
