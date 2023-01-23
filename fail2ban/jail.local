@@ -1,0 +1,12 @@
+[sshd]
+enabled = true
+
+[mysqld]
+log-error=/var/log/mariadb/mariadb.log
+
+[mysqld-auth]
+enabled=true
+logpath = /var/log/mariadb/mariadb.log
+
+[phpmyadmin-syslog]
+enabled = true
