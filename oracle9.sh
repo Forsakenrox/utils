@@ -26,7 +26,7 @@ usermod -d /home/apache apache
 dnf install -y mariadb-server
 
 #install additional utils
-dnf install -y composer git nginx bzip2 fail2ban htop wget tar nano mailx
+dnf install -y composer git nginx bzip2 fail2ban htop wget tar nano rsync
 #add nginx configs
 sed -i "s|include /etc/nginx/conf.d/\*\.conf;|include /etc/nginx/conf.d/\*\.conf; \n include /etc/nginx/sites-enabled/\*;|g" /etc/nginx/nginx.conf
 
