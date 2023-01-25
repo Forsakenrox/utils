@@ -24,7 +24,7 @@ usermod -d /home/apache apache
 
 #install nodejs
 curl --silent --location https://rpm.nodesource.com/setup_18.x | sudo bash -
-sudo yum -y install nodejs
+dnf -y install nodejs
 
 #install databases
 dnf install -y mariadb-server
