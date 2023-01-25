@@ -22,6 +22,10 @@ chown apache:apache -R /home/apache
 usermod --shell /bin/bash apache
 usermod -d /home/apache apache
 
+#install nodejs
+curl --silent --location https://rpm.nodesource.com/setup_18.x | sudo bash -
+dnf -y install nodejs
+
 #install databases
 dnf install -y mariadb-server
 
