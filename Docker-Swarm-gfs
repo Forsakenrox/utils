@@ -1,0 +1,98 @@
+Гайд по Docker Swarm
+
+Устанавливаем две виртуалки, я использую VMWARE
+Настройки простые - по 70 гигов, 2 ядра, 2 гига.
+С диском сложнее - я создам основной раздел 60 гб, и дополнительный раздел для glusterfs на 10 гигов в точку монтирования /mnt/gfs
+
+Дистрибутив - Оракл линукс 9.2 который нетинсталл (сетевой), не забываем поставить галочку что бы разрешить руту подключаться по ссш
+
+первым делом вырубаем нахер selinux для текущей сессии
+setenforce 0
+
+ну а потом в догонку и пермаментом после рестарта кому надо
+
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+
+Проделываем трюк для установки скрипта от докера - меняем ID дистра на centos в nano /etc/os-release
+
+Для установки запускаем это:
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+Не забываем вернуть ID = ol в os-release
+
+не забываем добавить все сервисы в автозагрузку
+systemctl enable docker
+systemctl start docker
+
+для работы сварма потребуюется открыть несколько портов, для меня это так, а для продакшена сами решайте:
+
+firewall-cmd --permanent --add-port=2376/tcp
+firewall-cmd --permanent --add-port=2377/tcp
+firewall-cmd --permanent --add-port=7946/tcp
+firewall-cmd --permanent --add-port=7946/udp
+firewall-cmd --permanent --add-port=4789/udp
+firewall-cmd --permanent --add-port=80/tcp
+firewall-cmd --reload
+
+Нужно сделать одну ноду главной или мастером
+docker swarm init
+
+Запоминаем строку, она понадобится что бы подключить другие ноды к этому кластеру
+docker swarm join --token SWMTKN-1-0yli7vzqzft3tghvtmu1n8tue7etx7jwvowhz3k7out1c9cvds-18f7qusr8qqlb2jyab7ebs7fo 192.168.88.161:2377
+выполняем эту команду на других нодах, делать там docker swarm init ни в коем случае не надо
+
+
+после этого на мастере проверяем список и состояние кластера
+docker node ls или как то так
+
+Далее для того что бы управлять этим невменяемым месивом нам потребуется человеческий инструмент - Portainer
+Установить его можно двумя команадми выполнив на мстер ноде:
+curl -L https://downloads.portainer.io/ce2-18/portainer-agent-stack.yml -o portainer-agent-stack.yml
+docker stack deploy -c portainer-agent-stack.yml portainer
+и можно подключаться на ip:9000 
+
+
+теперь установка GlusterFS
+
+Настроим фаервол
+sudo dnf install oracle-gluster-release-el8 -y
+sudo dnf config-manager --enable ol8_gluster_appstream ol8_baseos_latest ol8_appstream
+sudo dnf install @glusterfs/server -y
+
+sudo systemctl enable --now glusterd
+
+mkdir /mnt/gfs
+
+фаервол
+sudo firewall-cmd --permanent --add-service=glusterfs
+sudo firewall-cmd --reload
+
+На node1 делаем  gluster peer probe 192.168.88.157
+#на второй ноде мб не обязательно это делать
+##На node2 делаем  gluster peer probe 192.168.88.158
+
+На всех нодах подготовим файловую систему для хранилища Gluster:
+$ sudo mkfs.xfs /dev/sdb
+$ sudo mount /dev/sdb /mnt/gfs/
+
+МОнтируем устройство в gfs
+echo '/dev/sdb  /mnt/gfs/ xfs  defaults  0  0'|sudo tee -a /etc/fstab
+systemctl daemon-reload
+mount -a
+
+Создаём само размещение (выполнять только на одном сервере):
+gluster volume create swarm-vols replica 2 192.168.88.158:/mnt/gfs 192.168.88.157:/mnt/gfs force
+gluster volume start swarm-vols
+
+Создадим папку для монтирования уже с клиентской стороны
+mkdir /mnt/gfs-shared
+
+Монтируем наш гластер
+mount.glusterfs localhost:/swarm-vols /mnt/gfs-shared
+
+что бы автоматом после рестарта монтировать
+echo 'localhost:/swarm-vols /mnt/gfs-shared glusterfs defaults,_netdev,vers=3 0 0'|sudo tee -a /etc/fstab
+или если юзать nfs client (говорят быстрее читает, но надо отельно устанавливать)
+echo 'localhost:/swarm-vols /mnt/gfs-shared nfs defaults,_netdev 0 0'|sudo tee -a /etc/fstab
+systemctl daemon-reload
