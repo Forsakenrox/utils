@@ -1,6 +1,6 @@
 # utils
 Набор полезных утилит\скриптов
 
-curl -o oracle8.sh https://raw.githubusercontent.com/Forsakenrox/utils/main/oracle8.sh
+curl -o oracle9.sh https://raw.githubusercontent.com/Forsakenrox/utils/main/oracle9.sh
 
-bash oracle8.sh
+bash oracle9.sh
