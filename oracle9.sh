@@ -23,7 +23,7 @@ usermod --shell /bin/bash apache
 usermod -d /home/apache apache
 
 #install nodejs
-curl --silent --location https://rpm.nodesource.com/setup_18.x | sudo bash -
+curl --silent --location https://rpm.nodesource.com/setup_20.x | sudo bash -
 dnf -y install nodejs
 
 #install databases
@@ -73,6 +73,13 @@ cp limits.conf /etc/systemd/system/php-fpm.service.d/limits.conf
 cp limits.conf /etc/systemd/system/nginx.service.d/limits.conf
 cp limits.conf /etc/systemd/system/mariadb.service.d/limits.conf
 systemctl daemon-reload
+
+#php.ini configuring
+sed -i 's/.*memory_limit = .*/memory_limit = 1024M/' /etc/php.ini
+sed -i 's/.*max_execution_time = .*/max_execution_time = 300/' /etc/php.ini
+sed -i 's/.*upload_max_filesize = .*/upload_max_filesize = 1024M/' /etc/php.ini
+sed -i 's/.*post_max_size = .*/post_max_size = 1024M/' /etc/php.ini
+sed -i 's/.*expose_php = .*/expose_php = Off/' /etc/php.ini
 
 systemctl enable nginx
 systemctl enable mariadb
