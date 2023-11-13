@@ -16,8 +16,12 @@ dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php
 #chown root:gitlab-runner /var/lib/php/session
 #chown root:gitlab-runner /var/lib/php/wsdlcache
 
+echo 'export EDITOR=nano' >>  ~/.bashrc
 #ln -s /usr/share/httpd /home/apache
 mkdir -p /home/apache
+cp ~/.bashrc /home/apache/
+cp ~/.cshrc /home/apache/
+cp ~/.tcshrc /home/apache/
 chown apache:apache -R /home/apache
 usermod --shell /bin/bash apache
 usermod -d /home/apache apache
