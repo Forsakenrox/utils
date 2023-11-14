@@ -7,7 +7,7 @@ server {
 
     error_log   /var/log/nginx/anon-website.error.log;
     access_log  /var/log/nginx/anon-website.access.log combined buffer=64k;
-	
+    index index.html index.php;
     location / {
 		root /var/www/quasario/frontend/build;
 		index index.html;
