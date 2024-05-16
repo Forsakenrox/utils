@@ -1,9 +1,18 @@
 #hostnamectl set-hostname CLD-SRV-WEB-03
+
 #disable SElinux in current session
 setenforce 0
+
 #disable selinux after reboot
-sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
-sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+#old style (deprecated)
+#sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/sysconfig/selinux
+#sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+#new style with grub change
+#sed -i.bak '/^GRUB_CMDLINE_LINUX="/ s/"$/ selinux=0&/' /etc/default/grub
+#grub2-mkconfig -o /boot/grub2/grub.cfg
+#using grubby
+grubby --update-kernel ALL --args selinux=0
+
 #install repos
 dnf update -y
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
