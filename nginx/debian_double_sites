@@ -1,0 +1,28 @@
+server {
+    listen 80;
+
+    error_log   /var/log/nginx/anon-website.error.log;
+    access_log  /var/log/nginx/anon-website.access.log combined buffer=64k;
+
+    location / {
+		root /var/www/quasadmin/frontend/;
+		index index.html;
+		try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        try_files $uri $uri/ /index.php?$query_string;
+    }    
+
+    location ~ \.php$ {
+	  root /var/www/quasadmin/backend/public/;
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
