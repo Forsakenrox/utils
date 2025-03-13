@@ -19,7 +19,7 @@ dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarc
 dnf update -y
 dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
 #install php
-dnf module install -y php:remi-8.2
+dnf module install -y php:remi-8.3
 dnf install -y php-bcmath php-fpm php-mysqlnd php-curl php-ctype php-opcache php-fileinfo php-json php-mbstring php-openssl php-pdo php-tokenizer php-dom php-xml php-gd php-redis
 #chown root:gitlab-runner /var/lib/php/opcache
 #chown root:gitlab-runner /var/lib/php/session
@@ -36,8 +36,14 @@ usermod --shell /bin/bash apache
 usermod -d /home/apache apache
 
 #install nodejs
-curl --silent --location https://rpm.nodesource.com/setup_20.x | sudo bash -
-dnf -y install nodejs
+#curl --silent --location https://rpm.nodesource.com/setup_20.x | sudo bash -
+#dnf -y install nodejs
+# Download and install fnm:
+curl -o- https://fnm.vercel.app/install | bash
+# Download and install Node.js:
+fnm install 22
+
+
 
 #install databases
 dnf install -y mariadb-server
