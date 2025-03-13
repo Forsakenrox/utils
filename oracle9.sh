@@ -13,6 +13,14 @@ setenforce 0
 #using grubby
 grubby --update-kernel ALL --args selinux=0
 
+#enable file swap
+sudo swapoff -a
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+sudo swapon /swapfile
+
 #install repos
 dnf update -y
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
