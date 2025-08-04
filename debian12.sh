@@ -1,0 +1,167 @@
+userdel --remove-home --remove-all-files rlsadmin
+deb http://deb.debian.org/debian bookworm-backports main contrib non-free
+echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free" | sudo tee -a /etc/apt/sources.list.d/backports.list
+apt update
+apt install -y curl openssl firewalld certbot htop unzip net-tools sudo ca-certificates gnupg2 lsb-release debian-archive-keyring fail2ban valkey git bzip2 tar rsync
+apt install -t bookworm-backports linux-image-amd64 linux-headers-amd64
+
+mkdir /var/www/
+
+#enable file swap
+swapoff -a
+fallocate -l 4G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+swapon /swapfile
+
+#create www-data user env
+mkdir -p /home/www-data
+cp ~/.bashrc /home/www-data/
+cp ~/.cshrc /home/www-data/
+cp ~/.tcshrc /home/www-data/
+chown www-data:www-data -R /home/www-data
+usermod --shell /bin/bash www-data
+usermod -d /home/www-data www-data
+
+#install docker
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+
+#install nodejs
+curl -o- https://fnm.vercel.app/install | bash
+/root/.local/share/fnm/fnm install 22
+
+#install php
+curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
+dpkg -i /tmp/debsuryorg-archive-keyring.deb
+sh -c 'echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+apt-get update
+apt install -y php8.4-{cli,bcmath,fpm,mysql,curl,opcache,mbstring,xml,gd,redis,sqlite3,zip,exif}
+sed -i 's|listen.owner = www-data|listen.owner = nginx|g' /etc/php/8.4/fpm/pool.d/www.conf
+sed -i 's|listen.group = www-data|listen.group = nginx|g' /etc/php/8.4/fpm/pool.d/www.conf
+
+#install composer
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"
+php composer-setup.php
+php -r "unlink('composer-setup.php');"
+mv composer.phar /usr/local/bin/composer
+ 
+#nginx install
+curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian `lsb_release -cs` nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
+echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | sudo tee /etc/apt/preferences.d/99nginx
+apt update
+apt install nginx
+#add nginx configs
+sed -i 's|include /etc/nginx/conf.d/\*\.conf;|include /etc/nginx/sites-enabled/*;|g' /etc/nginx/nginx.conf
+
+#install mariadb
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash
+apt-get install -y mariadb-server mariadb-client mariadb-backup
+ 
+#install phpmyadmin
+DATA="$(wget https://www.phpmyadmin.net/home_page/version.txt -q -O-)"
+URL="$(echo $DATA | cut -d ' ' -f 3)"
+VER="$(echo $DATA | cut -d ' ' -f 1)"
+curl -o phpMyAdmin-${VER}-all-languages.tar.gz https://files.phpmyadmin.net/phpMyAdmin/${VER}/phpMyAdmin-${VER}-all-languages.tar.gz
+tar xvf phpMyAdmin-${VER}-all-languages.tar.gz
+rm -rf phpMyAdmin-*.tar.gz
+sudo mv phpMyAdmin-*/ /var/www/phpmyadmin
+cp /var/www/phpmyadmin/config.sample.inc.php  /var/www/phpmyadmin/config.inc.php
+#randomBlowfishSecret=$(openssl rand -base64 32)
+randomBlowfishSecret=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)
+sed -i "s|\$cfg\['blowfish_secret'\]".*"|\$cfg\['blowfish_secret'\] = '${randomBlowfishSecret}';|" /var/www/phpmyadmin/config.inc.php
+#sed -i "s|\['AllowNoPassword'\] = false;|\['AllowNoPassword'\] = true;|" /var/www/phpmyadmin/config.inc.php
+mkdir -p /var/www/phpmyadmin/tmp/
+mkdir -p /etc/nginx/sites-available/
+mkdir -p /etc/nginx/sites-enabled/
+curl -o /etc/nginx/sites-available/phpmyadmin https://raw.githubusercontent.com/Forsakenrox/utils/main/phpmyadmin
+sed -i 's|/run/php-fpm/www.sock|/run/php/php8.4-fpm.sock|g' /etc/nginx/sites-available/phpmyadmin
+ln -s /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
+
+#install gitlab-runner
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | bash
+apt install -y gitlab-runner
+#change deploy user to www-data
+gitlab-runner uninstall
+gitlab-runner install --user=www-data --working-directory=/home/www-data
+service gitlab-runner restart
+
+#patch fail2ban error
+echo "sshd_backend = systemd" >> /etc/fail2ban/paths-debian.conf
+
+#highload optimisations
+mkdir -p /etc/systemd/system/php8.4-fpm.service.d
+mkdir -p /etc/systemd/system/nginx.service.d
+mkdir -p /etc/systemd/system/mariadb.service.d
+mkdir -p /etc/systemd/system/valkey.service.d
+touch /etc/systemd/system/php8.4-fpm.service.d/limits.conf
+touch /etc/systemd/system/nginx.service.d/limits.conf
+touch /etc/systemd/system/mariadb.service.d/limits.conf
+touch /etc/systemd/system/valkey.service.d/limits.conf
+echo "[Service]" >> /etc/systemd/system/php8.4-fpm.service.d/limits.conf
+echo "[Service]" >> /etc/systemd/system/nginx.service.d/limits.conf
+echo "[Service]" >> /etc/systemd/system/mariadb.service.d/limits.conf
+echo "[Service]" >> /etc/systemd/system/valkey.service.d/limits.conf
+echo "LimitNOFILE=65536" >> /etc/systemd/system/php8.4-fpm.service.d/limits.conf
+echo "LimitNOFILE=65536" >> /etc/systemd/system/nginx.service.d/limits.conf
+echo "LimitNOFILE=65536" >> /etc/systemd/system/mariadb.service.d/limits.conf
+echo "LimitNOFILE=65536" >> /etc/systemd/system/valkey.service.d/limits.conf
+
+#php.ini configuring
+sed -i 's/.*memory_limit = .*/memory_limit = 1024M/' /etc/php/8.*/fpm/php.ini
+sed -i 's/.*max_execution_time = .*/max_execution_time = 20/' /etc/php/8.*/fpm/php.ini
+sed -i 's/.*upload_max_filesize = .*/upload_max_filesize = 1024M/' /etc/php/8.*/fpm/php.ini
+sed -i 's/.*post_max_size = .*/post_max_size = 1024M/' /etc/php/8.*/fpm/php.ini
+sed -i 's/.*expose_php = .*/expose_php = Off/' /etc/php/8.*/fpm/php.ini
+
+#final permission change
+chown www-data:www-data -R /var/www
+chmod -R 775 /var/www
+
+#update sudoers file
+echo "zabbix ALL=(ALL) NOPASSWD: /usr/bin/netstat"
+echo "zabbix ALL=(ALL) NOPASSWD: /usr/bin/du"
+echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/docker compose *"
+echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/docker"
+echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm"
+
+#add firefall rules
+#http
+firewall-cmd --permanent --add-port=80/tcp
+#https
+firewall-cmd --permanent --add-port=443/tcp
+#phpmyadmin
+firewall-cmd --permanent --add-port=10000/tcp
+#mysql
+firewall-cmd --permanent --add-port=3306/tcp
+#mongodb
+firewall-cmd --permanent --add-port=27017/tcp
+#redis
+firewall-cmd --permanent --add-port=6379/tcp
+firewall-cmd --reload
+
+#enabling services
+systemctl enable nginx
+systemctl enable mariadb
+systemctl enable valkey-server
+systemctl enable php8.4-fpm
+systemctl enable fail2ban
+systemctl enable gitlab-runner
+systemctl restart nginx
+systemctl restart mariadb
+systemctl restart valkey-server
+systemctl restart php8.4-fpm
+systemctl restart fail2ban
+systemctl restart gitlab-runner
+
+mysql_secure_installation
+
+##!!!Увеличить время сессии SSH!!!
