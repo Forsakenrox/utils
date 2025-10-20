@@ -89,7 +89,8 @@ ln -s /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
 #install gitlab-runner
 curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | bash
 apt install -y gitlab-runner
-
+gitlab-runner uninstall
+gitlab-runner install --user=www-data --working-directory=/home/www-data
 
 #patch fail2ban error (проверить вдруг исправили перед применением)
 #echo "sshd_backend = systemd" >> /etc/fail2ban/paths-debian.conf
