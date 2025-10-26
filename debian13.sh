@@ -159,3 +159,4 @@ mysql_secure_installation
 sed -i '/ClientAliveInterval/s/.*/ClientAliveInterval 15/' /etc/ssh/sshd_config
 sed -i '/ClientAliveCountMax/s/.*/ClientAliveCountMax 4/' /etc/ssh/sshd_config
 sed -i '/TCPKeepAlive/s/.*/TCPKeepAlive yes/' /etc/ssh/sshd_config
+service sshd restart
