@@ -64,7 +64,9 @@ sed -i 's|user www-data;|user nginx;|g' /etc/nginx/nginx.conf
 #install mariadb
 curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash
 apt-get install -y mariadb-server mariadb-client mariadb-backup
- 
+mkdir -p /var/log/mariadb
+chown -R mysql:mysql /var/log/mariadb
+
 #install phpmyadmin
 cd ~
 DATA="$(wget https://www.phpmyadmin.net/home_page/version.txt -q -O-)"
