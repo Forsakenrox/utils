@@ -1,6 +1,6 @@
-userdel --remove-home --remove-all-files rlsadmin
+userdel --remove-home --remove-all-files someuser
 apt update
-apt install -y curl openssl firewalld htop unzip sudo fail2ban valkey git bzip2 tar rsync
+apt install -y curl openssl firewalld htop unzip sudo fail2ban valkey git bzip2 pbzip2 tar rsync tcpdump
 
 mkdir /var/www/
 
@@ -140,6 +140,12 @@ firewall-cmd --permanent --add-port=27017/tcp
 firewall-cmd --permanent --add-port=6379/tcp
 firewall-cmd --reload
 
+##!!!Увеличить время сессии SSH!!!
+sed -i '/ClientAliveInterval/s/.*/ClientAliveInterval 15/' /etc/ssh/sshd_config
+sed -i '/ClientAliveCountMax/s/.*/ClientAliveCountMax 4/' /etc/ssh/sshd_config
+sed -i '/TCPKeepAlive/s/.*/TCPKeepAlive yes/' /etc/ssh/sshd_config
+service sshd restart
+
 #enabling services
 systemctl enable nginx
 systemctl enable mariadb
@@ -156,9 +162,3 @@ systemctl restart gitlab-runner
 
 #комманда изменилась надо выяснять
 mysql_secure_installation
-
-##!!!Увеличить время сессии SSH!!!
-sed -i '/ClientAliveInterval/s/.*/ClientAliveInterval 15/' /etc/ssh/sshd_config
-sed -i '/ClientAliveCountMax/s/.*/ClientAliveCountMax 4/' /etc/ssh/sshd_config
-sed -i '/TCPKeepAlive/s/.*/TCPKeepAlive yes/' /etc/ssh/sshd_config
-service sshd restart
