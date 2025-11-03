@@ -1,6 +1,6 @@
 userdel --remove-home --remove-all-files someuser
 apt update
-apt install -y curl openssl firewalld htop unzip sudo fail2ban valkey git bzip2 pbzip2 tar rsync tcpdump
+apt install -y curl openssl firewalld htop unzip sudo fail2ban valkey git bzip2 pbzip2 tar rsync tcpdump conntrack
 
 mkdir /var/www/
 
