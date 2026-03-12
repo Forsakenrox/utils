@@ -1,0 +1,10 @@
+генерирование web сертификатов
+
+certbot certonly --webroot -w /var/www/letsencrypt -d 193.135.137.17 --dry-run
+
+если сертбот древней версии и нужны для Ip адресов сертификаты:
+
+curl https://get.acme.sh | sh -s email=my@example.com
+wget -O -  https://get.acme.sh | sh -s email=my@example.com
+нужно перезайти в консоль что бы заработала команда:
+acme.sh --issue -d 193.135.137.17 -w /var/www/letsencrypt --certificate-profile shortlived --days 6 --staging
