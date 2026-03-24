@@ -1,8 +1,25 @@
-userdel --remove-home --remove-all-files someuser
-apt update
+#Устанавливать чистую систему нужно НЕ задавая пароль для root пользователя что бы в системе нормально работало sudo
+sudo su
+cd ~
+passwd
+
+##!!!Увеличить время сессии SSH!!!
+sed -i '/^#\{0,1\}PermitRootLogin/c\PermitRootLogin yes' /etc/ssh/sshd_config
+sed -i '/ClientAliveInterval/s/.*/ClientAliveInterval 15/' /etc/ssh/sshd_config
+sed -i '/ClientAliveCountMax/s/.*/ClientAliveCountMax 4/' /etc/ssh/sshd_config
+sed -i '/TCPKeepAlive/s/.*/TCPKeepAlive yes/' /etc/ssh/sshd_config
+service sshd restart
+
+# Теперь нужно разлогиниться и зайти под root
+
+# === Базовая подготовка ===
+# Удаляем начального юзера
+userdel -r someuser
+
+apt update && apt upgrade -y
 apt install -y curl openssl firewalld htop unzip sudo fail2ban valkey git bzip2 pbzip2 tar rsync tcpdump conntrack
 
-mkdir /var/www/
+mkdir -p /var/www
 
 #enable file swap
 swapoff -a
@@ -16,8 +33,6 @@ swapon /swapfile
 mkdir -p /home/www-data
 cp ~/.bashrc /home/www-data/
 cp ~/.profile /home/www-data/
-cp ~/.cshrc /home/www-data/
-cp ~/.tcshrc /home/www-data/
 chown www-data:www-data -R /home/www-data
 usermod --shell /bin/bash www-data
 usermod -d /home/www-data www-data
@@ -34,35 +49,32 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 #install nodejs
 curl -o- https://fnm.vercel.app/install | bash
 /root/.local/share/fnm/fnm install 22
+source /root/.bashrc
 
 #install php
 curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
 dpkg -i /tmp/debsuryorg-archive-keyring.deb
 sh -c 'echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
 apt-get update
-apt install -y php8.4-{cli,bcmath,fpm,mysql,curl,opcache,mbstring,xml,gd,redis,sqlite3,zip,exif}
+apt install -y php8.5-{cli,bcmath,fpm,mysql,curl,mbstring,xml,gd,redis,sqlite3,zip,common}
 sed -i 's|listen.owner = www-data|listen.owner = nginx|g' /etc/php/8.*/fpm/pool.d/www.conf
 sed -i 's|listen.group = www-data|listen.group = nginx|g' /etc/php/8.*/fpm/pool.d/www.conf
 
 #install composer
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-php -r "if (hash_file('sha384', 'composer-setup.php') === 'ed0feb545ba87161262f2d45a633e34f591ebb3381f2e0063c345ebea4d228dd0043083717770234ec00c5a9f9593792') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"
+php -r "if (hash_file('sha384', 'composer-setup.php') === 'c8b085408188070d5f52bcfe4ecfbee5f727afa458b2573b8eaaf77b3419b0bf2768dc67c86944da1544f06fa544fd47') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"
 php composer-setup.php
 php -r "unlink('composer-setup.php');"
 mv composer.phar /usr/local/bin/composer
- 
+
 #nginx install
-#curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
-#echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian `lsb_release -cs` nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
-#echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" | sudo tee /etc/apt/preferences.d/99nginx
-apt update
 apt install -y nginx
 #add nginx configs
 useradd nginx -s /sbin/nologin -d /var/lib/nginx
 sed -i 's|user www-data;|user nginx;|g' /etc/nginx/nginx.conf
 
 #install mariadb
-curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash
+#curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash
 apt-get install -y mariadb-server mariadb-client mariadb-backup
 mkdir -p /var/log/mariadb
 chown -R mysql:mysql /var/log/mariadb
@@ -85,7 +97,7 @@ mkdir -p /var/www/phpmyadmin/tmp/
 mkdir -p /etc/nginx/sites-available/
 mkdir -p /etc/nginx/sites-enabled/
 curl -o /etc/nginx/sites-available/phpmyadmin https://raw.githubusercontent.com/Forsakenrox/utils/main/phpmyadmin
-sed -i 's|/run/php-fpm/www.sock|/run/php/php8.4-fpm.sock|g' /etc/nginx/sites-available/phpmyadmin
+sed -i 's|/run/php-fpm/www.sock|/run/php/php8.5-fpm.sock|g' /etc/nginx/sites-available/phpmyadmin
 ln -s /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
 
 #install gitlab-runner
@@ -94,23 +106,20 @@ apt install -y gitlab-runner
 gitlab-runner uninstall
 gitlab-runner install --user=www-data --working-directory=/home/www-data
 
-#patch fail2ban error (проверить вдруг исправили перед применением)
-#echo "sshd_backend = systemd" >> /etc/fail2ban/paths-debian.conf
-
 #highload optimisations
-mkdir -p /etc/systemd/system/php8.4-fpm.service.d
+mkdir -p /etc/systemd/system/php8.5-fpm.service.d
 mkdir -p /etc/systemd/system/nginx.service.d
 mkdir -p /etc/systemd/system/mariadb.service.d
 mkdir -p /etc/systemd/system/valkey.service.d
-touch /etc/systemd/system/php8.4-fpm.service.d/limits.conf
+touch /etc/systemd/system/php8.5-fpm.service.d/limits.conf
 touch /etc/systemd/system/nginx.service.d/limits.conf
 touch /etc/systemd/system/mariadb.service.d/limits.conf
 touch /etc/systemd/system/valkey.service.d/limits.conf
-echo "[Service]" >> /etc/systemd/system/php8.4-fpm.service.d/limits.conf
+echo "[Service]" >> /etc/systemd/system/php8.5-fpm.service.d/limits.conf
 echo "[Service]" >> /etc/systemd/system/nginx.service.d/limits.conf
 echo "[Service]" >> /etc/systemd/system/mariadb.service.d/limits.conf
 echo "[Service]" >> /etc/systemd/system/valkey.service.d/limits.conf
-echo "LimitNOFILE=65536" >> /etc/systemd/system/php8.4-fpm.service.d/limits.conf
+echo "LimitNOFILE=65536" >> /etc/systemd/system/php8.5-fpm.service.d/limits.conf
 echo "LimitNOFILE=65536" >> /etc/systemd/system/nginx.service.d/limits.conf
 echo "LimitNOFILE=65536" >> /etc/systemd/system/mariadb.service.d/limits.conf
 echo "LimitNOFILE=65536" >> /etc/systemd/system/valkey.service.d/limits.conf
@@ -140,25 +149,21 @@ firewall-cmd --permanent --add-port=27017/tcp
 firewall-cmd --permanent --add-port=6379/tcp
 firewall-cmd --reload
 
-##!!!Увеличить время сессии SSH!!!
-sed -i '/ClientAliveInterval/s/.*/ClientAliveInterval 15/' /etc/ssh/sshd_config
-sed -i '/ClientAliveCountMax/s/.*/ClientAliveCountMax 4/' /etc/ssh/sshd_config
-sed -i '/TCPKeepAlive/s/.*/TCPKeepAlive yes/' /etc/ssh/sshd_config
-service sshd restart
-
 #enabling services
 systemctl enable nginx
 systemctl enable mariadb
 systemctl enable valkey-server
-systemctl enable php8.4-fpm
+systemctl enable php8.5-fpm
 systemctl enable fail2ban
 systemctl enable gitlab-runner
+systemctl enable docker
 systemctl restart nginx
 systemctl restart mariadb
 systemctl restart valkey-server
-systemctl restart php8.4-fpm
+systemctl restart php8.5-fpm
 systemctl restart fail2ban
 systemctl restart gitlab-runner
+systemctl restart docker
 
 #комманда изменилась надо выяснять
 mysql_secure_installation
