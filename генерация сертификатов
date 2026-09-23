@@ -8,3 +8,85 @@ curl https://get.acme.sh | sh -s email=my@example.com
 wget -O -  https://get.acme.sh | sh -s email=my@example.com
 нужно перезайти в консоль что бы заработала команда:
 acme.sh --issue -d 193.135.137.17 -w /var/www/letsencrypt --certificate-profile shortlived --days 6 --staging
+
+
+генерация через DNS ACME CHALLENGE у TIMEWEB хостинга
+
+certbot certonly --manual --preferred-challenges dns --manual-auth-hook /etc/letsencrypt/timeweb-auth.sh --manual-cleanup-hook /etc/letsencrypt/timeweb-clean.sh -d '*.testdomain.test' -d 'testdomain.test'
+
+/etc/letsencrypt/timeweb-auth.sh:
+#!/bin/bash
+
+# Получаем данные от Certbot
+DOMAIN="${CERTBOT_DOMAIN}"          # базовый домен, например 5dmed.me
+VALIDATION="${CERTBOT_VALIDATION}"  # значение для TXT записи
+
+# API токен Timeweb Cloud
+API_TOKEN="TOKEN-API-HERE"
+
+# Полное имя challenge (с _acme-challenge.)
+CHALLENGE_DOMAIN="_acme-challenge.${DOMAIN}"
+
+# Создаём TXT запись через API Timeweb
+RESPONSE=$(curl -s --request POST \
+  --url "https://api.timeweb.cloud/api/v2/domains/${CHALLENGE_DOMAIN}/dns-records" \
+  --header "Authorization: Bearer ${API_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data "{\"type\":\"TXT\",\"value\":\"${VALIDATION}\",\"ttl\":600}")
+
+# Извлекаем ID созданной записи из ответа
+RECORD_ID=$(echo "${RESPONSE}" | sed -n 's/.*"id":\s*\([0-9]\+\).*/\1/p' | head -1)
+
+if [ -z "${RECORD_ID}" ]; then
+    echo "ОШИБКА: не удалось извлечь ID записи из ответа API"
+    echo "Ответ API: ${RESPONSE}"
+    exit 1
+fi
+
+# Сохраняем ID и домен с уникальным именем файла
+# Используем hash от валидации, чтобы не было коллизий между wildcard и обычным доменом
+HASH=$(echo -n "${DOMAIN}_${VALIDATION}" | md5sum | awk '{print $1}')
+RECORD_FILE="/tmp/certbot-timeweb-${HASH}.txt"
+echo "${DOMAIN} ${RECORD_ID}" > "${RECORD_FILE}"
+
+echo "DNS запись создана: ${CHALLENGE_DOMAIN} -> ${VALIDATION} (ID: ${RECORD_ID})"
+echo "Сохранено в: ${RECORD_FILE}"
+
+# Ждём распространения DNS записи
+sleep 30
+
+
+/etc/letsencrypt/timeweb-clean.sh:
+#!/bin/bash
+
+# Получаем данные от Certbot
+DOMAIN="${CERTBOT_DOMAIN}"
+VALIDATION="${CERTBOT_VALIDATION}"
+
+# API токен Timeweb Cloud
+API_TOKEN="eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6IjFrYnhacFJNQGJSI0tSbE1xS1lqIn0.eyJ1c2VyIjoiY20xOTY0MiIsInR5cGUiOiJhcGlfa2V5IiwiYXBpX2tleV9pZCI6ImRiYWRjODViLWZkMzAtNDY3YS1hMGIyLTNiNTc0NGI0N>
+
+# Находим файл с сохранёнными данными
+HASH=$(echo -n "${DOMAIN}_${VALIDATION}" | md5sum | awk '{print $1}')
+RECORD_FILE="/tmp/certbot-timeweb-${HASH}.txt"
+
+if [ ! -f "${RECORD_FILE}" ]; then
+    echo "ОШИБКА: файл с ID записи не найден: ${RECORD_FILE}"
+    exit 1
+fi
+
+# Читаем домен и ID (сохранённый домен может понадобиться для логирования)
+read -r SAVED_DOMAIN RECORD_ID < "${RECORD_FILE}"
+
+# ВАЖНО: при удалении используется БАЗОВЫЙ домен (без _acme-challenge.)
+echo "Удаление DNS записи с ID ${RECORD_ID} для домена ${SAVED_DOMAIN}"
+
+curl -s -X DELETE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  "https://api.timeweb.cloud/api/v2/domains/${SAVED_DOMAIN}/dns-records/${RECORD_ID}"
+
+# Удаляем временный файл
+rm -f "${RECORD_FILE}"
+
+echo "DNS запись удалена успешно"
