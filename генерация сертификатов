@@ -64,7 +64,7 @@ DOMAIN="${CERTBOT_DOMAIN}"
 VALIDATION="${CERTBOT_VALIDATION}"
 
 # API токен Timeweb Cloud
-API_TOKEN="eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6IjFrYnhacFJNQGJSI0tSbE1xS1lqIn0.eyJ1c2VyIjoiY20xOTY0MiIsInR5cGUiOiJhcGlfa2V5IiwiYXBpX2tleV9pZCI6ImRiYWRjODViLWZkMzAtNDY3YS1hMGIyLTNiNTc0NGI0N>
+API_TOKEN="API-TOKEN-HERE"
 
 # Находим файл с сохранёнными данными
 HASH=$(echo -n "${DOMAIN}_${VALIDATION}" | md5sum | awk '{print $1}')
